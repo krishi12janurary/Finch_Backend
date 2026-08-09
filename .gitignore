@@ -1,0 +1,13 @@
+venv/
+env/
+__pycache__/
+*.pyc
+.env
+.flaskenv
+*.db
+*.sqlite3
+instance/
+.vscode/
+.DS_Store
+kyc_document/
+node_modules/

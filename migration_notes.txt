@@ -1,0 +1,11 @@
+when we made an change or update in the models these are the commands we have to fire in the terminal:>
+flask db migrate -m "Add email column to User"
+flask db upgrade
+
+through these we are telling add an new column into User model without delete the whole database.
+so this called flask-migration.
+
+flask db migrate -m "Add email column to User"
+in the "" what we have write is called scripts.
+upgrade is like telling update the table with adding an column.
+
