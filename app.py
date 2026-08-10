@@ -24,9 +24,10 @@ from portfolio_grouped_comapny import fetching_current_price
 from sector_wise_companies import identify_the_sector
 from bank_connection import app_login,submitting_kyc_form,collecting_user_status,bank_add_balance,updation_bal_route,demat_acc_approval
 import requests
-
+import os
+from dotenv import load_dotenv
 from geopy.distance import geodesic
-
+load_dotenv()
 
 
 
@@ -44,18 +45,23 @@ CORS(app, supports_credentials=True, origins=[#We are allowing our React fronten
 socketio = SocketIO(app,cors_allowed_origins="*")
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['API_KEY'] = 'my-secret-API-key'
-app.config['JWT_SECRET_KEY'] = 'super-secret-key'
+
+
 app.config["JWT_TOKEN_LOCATION"] = ["cookies"]
 app.config["JWT_COOKIE_SECURE"] = False
 app.config["JWT_COOKIE_CSRF_PROTECT"] = False
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'#t means say an user sigs-up than to verify his email and message will be sent in form of email in gmail through secured way through port 587 as google has many ports for difference purposes while 587 it's an secure form or way for google to send any email through this port in secure and enrypted way through TIL and when an user will sign the email will be sent through my gmail that from krishibhavikgnadhi we are verifying you.
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = 'krishibhavikgandhi@gmail.com'
-app.config['MAIL_PASSWORD'] = 'uzjxczcffsjmtloo'
-app.secret_key = "my-otp-secret-key"
-client = razorpay.Client(auth=('rzp_test_TEdAa2OfF3intB','7c0N1W8bHlUgHqA3FMtLuubH'))
+
+
+
+app.config['API_KEY'] = os.environ.get('API_KEY')
+app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY')
+app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
+app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
+app.secret_key = os.environ.get('APP_SECRET_KEY')
+client = razorpay.Client(auth=(os.environ.get('RAZORPAY_TEST_KEY'), os.environ.get('RAZORPAY_SECRET_KEY')))
 
 
 
