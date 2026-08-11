@@ -113,8 +113,13 @@ def Sign_up():
         </body>
     </html>
     '''
-    mail.send(msg)
-    return jsonify({"message":"Check Your Mail", "email":user_data_fill.email}),200 # we before this http://192.168.1.11:5173/user/verify_email/{token} url we wrote localhost but when the user open that link in their devices the phone searches the app in phone and through which the app will open but our app is running on laptop it's not live in the phone so we will connect with the IP address of our wifi network through which when user click the link or requests it will sasys go to this network and at port 5173 and then he will able to see our react page as localhost means run on the smae device while through connecting with IP address we are telling that send tis request to this network and port 5173 and through which the react page will open and then user can see the verification page and click on verify email and then it will send request to backend and backend will verify the token and if it's valid than it will change the verify_status to true in database and send response to frontend that email is verified successfully. 
+    try:
+        mail.send(msg)
+        
+    except Exception as error:
+        print("Email Sending Failed",error)
+    return jsonify({"message":"Check Your Mail", "email":user_data_fill.email}),200 
+
 
 @app.route("/user/verify_email/<token>",methods=['GET'])
 def verify_email(token):
