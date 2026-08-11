@@ -71,6 +71,10 @@ migrate = Migrate(app, db)
 jwt = JWTManager(app)
 mail = Mail(app)#connecting my app with mail server so that i can send mail to user for various purposes like sending them otp for verification, sending them mail for password reset, sending them mail for congratulating them on their investment and many more things.
 
+with app.app_context():
+    db.create_all()
+
+    
 #check-ups & trial route:
 @app.route("/")
 def homepage():
