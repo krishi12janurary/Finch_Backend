@@ -54,7 +54,7 @@ app.config['MAIL_SERVER'] = 'smtp.gmail.com'#t means say an user sigs-up than to
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
 
-
+app.config['MAIL_SUPPRESS_SEND'] = False
 
 app.config['API_KEY'] = os.environ.get('API_KEY')
 app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY')
@@ -114,11 +114,16 @@ def Sign_up():
     </html>
     '''
     try:
-        mail.send(msg)
+        with mail.connect() as conn:
+            conn.send(msg)
+    except Exception as e:
+        print(f"Email sending failed: {e}")
+    # try:
+    #     mail.send(msg)
         
-    except Exception as error:
-        print("Email Sending Failed",error)
-    return jsonify({"message":"Check Your Mail", "email":user_data_fill.email}),200 
+    # except Exception as error:
+    #     print("Email Sending Failed",error)
+    # return jsonify({"message":"Check Your Mail", "email":user_data_fill.email}),200 
 
 
 @app.route("/user/verify_email/<token>",methods=['GET'])
