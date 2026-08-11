@@ -1,6 +1,6 @@
 
 
-
+from new_companies_data import nifty_50
 import yfinance as yf
 import requests
 
@@ -13,19 +13,7 @@ def converting_dict_to_orients(df):
     
 def fetching_50_companies():
     
-    nifty_50 = [
-        
-        "ADANIENT", "ADANIPORTS", "APOLLOHOSP", "ASIANPAINT", "AXISBANK",
-        "BAJAJ-AUTO", "BAJFINANCE", "BAJAJFINSV", "BEL", "BHARTIARTL",
-        "CIPLA", "COALINDIA", "DRREDDY", "EICHERMOT", "ETERNAL",
-        "GRASIM", "HCLTECH", "HDFCBANK", "HDFCLIFE", "HEROMOTOCO",
-        "HINDALCO", "HINDUNILVR", "ICICIBANK", "ITC", "INDUSINDBK",
-        "INFY", "JSWSTEEL", "JIOFIN", "KOTAKBANK", "LT",
-        "M&M", "MARUTI", "NTPC", "NESTLEIND", "ONGC",
-        "POWERGRID", "RELIANCE", "SBILIFE", "SHRIRAMFIN", "SBIN",
-        "SUNPHARMA", "TCS", "TATACONSUM", "TATAMOTORS", "TATASTEEL",
-        "TECHM", "TITAN", "TRENT", "ULTRACEMCO", "WIPRO"
-]
+    
     
     results = {}
        
@@ -41,7 +29,7 @@ def fetching_50_companies():
             data_1year = ticker.history(period='1y',interval='1mo')
                 
             if data_5days.empty or data_1week.empty:
-                print("Data is empty")
+                
                 continue
             data_1day.index = data_1day.index.astype(str)   
             data_5days.index = data_5days.index.astype(str)
@@ -61,24 +49,20 @@ def fetching_50_companies():
             
                 
         except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
-            print("Internal connection Error, this error is from NSE side so please cooperate.")
+            
             return "Internal connection Error, this error is from NSE side so please cooperate."
         
         except Exception as e:
-            print("Internal Server Error")
+            
             return "Error",e
 
              
-    print("Data is delivered")
+    
     return results
     
 
-fetching_50_companies()
+# fetching_50_companies()
 
 
-
-# data = yf.Ticker("RELIANCE.NS")
-# history = data.history(period="1d",interval="1m")
-# print(history)
 
 

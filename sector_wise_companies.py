@@ -1,28 +1,13 @@
 import yfinance as yf
-from types import SimpleNamespace
-nifty_50 ={}
 
-nifty_50['IT'] = ["INFY","TCS","HCLTECH","TECHM","WIPRO"]
-nifty_50["Banking"] = ["HDFCBANK","ICICIBANK","KOTAKBANK","SBIN","AXISBANK"]
-nifty_50["Finance"] = ["BAJFINANCE","BAJAJFINSV","SHRIRAMFIN","HDFCLIFE","SBILIFE","JIOFIN"]
-nifty_50['Automobile'] = ["BAJAJ-AUTO", "HEROMOTOCO", "M&M", "MARUTI", "TATAMOTORS","EICHERMOT"]
-nifty_50['Energy'] = ["RELIANCE","ONGC","POWERGRID","COALINDIA","NTPC"]
-nifty_50['Metals'] = ["TATASTEEL","JSWSTEEL","HINDALCO"]
-nifty_50['Pharma'] = ["APOLLOHOSP","CIPLA","DRREDDY","SUNPHARMA"]
-nifty_50['FMCG'] = ["HINDUNILVR","ITC","NESTLEIND","TATACONSUM"]
-nifty_50['Consumer_Durables'] = ["ASIANPAINT","TITAN"]
-nifty_50['Retail'] = ["TRENT","ETERNAL"]
-nifty_50['Telecom'] = ["BHARTIARTL"]
-nifty_50['Defence']= ["BEL", "LT"]
-nifty_50['Construction'] = ["GRASIM","ULTRACEMCO"]
-nifty_50['Services_Infrastructure'] = ["ADANIPORTS"]
+from new_companies_data import nifty_50_by_sector
 
-def get_sector(sector_name):#RELIANCE
+def get_sector(sector_name):
     
-    for k,v in nifty_50.items():
+    for k,v in nifty_50_by_sector.items():
         try:
-            if sector_name in v:#RELIANCE 
-                return k#will return OIL & ENERGY 
+            if sector_name in v:
+                return k
         except Exception as e:
             return "Error has been occured",e
     return "Unknown"
@@ -57,10 +42,7 @@ def identify_the_sector(user_investments):
         for sector,data in sector_totals.items()
     ] 
     return response_formated_data#okay so  currently i am holding 2 wipro shares and one ITC share so wipro will be of IT and ITC will be FMCG so current_price of wipro is 178 * 2  = whatever will eb answer will says you contributed or your stake in these or holding in these sector is 356 and same as ITC.
-    #so output will be IT:{current_price:345,high:high,low:low} if we have two stocks from IT than it will sum-up that that two current prices of wipro and infosys and result will be same which explains how much holding has been made in the IT sector by user.
-test_namesspace = SimpleNamespace(stock_name="RELIANCE",quantity=1,buy_price=2890)
-
-identify_the_sector([test_namesspace])
+    
 
 
 
