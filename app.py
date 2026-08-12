@@ -22,22 +22,17 @@ from market_data_as_per_timeframe import fetching_50_companies
 from listed_company_lists import companys_lists
 from portfolio_grouped_comapny import fetching_current_price
 from sector_wise_companies import identify_the_sector
-from bank_connection import app_login,submitting_kyc_form,collecting_user_status,bank_add_balance,updation_bal_route,demat_acc_approval
+from bank_connection import app_login,submitting_kyc_form,collecting_user_status,updation_bal_route,demat_acc_approval
 import requests
 import os
 from dotenv import load_dotenv
 from geopy.distance import geodesic
 load_dotenv()
 
-
-
-
-
-
 app = Flask(__name__)
 CORS(app, supports_credentials=True, origins=[#We are allowing our React frontend to call backend APIs. Backend must specify which frontend origins are trusted. CORS is the rule/configuration that tells the browser whether to allow that frontend to read the backend response.
     "http://localhost:5173", #now localhost mmeans it's an network which works only at the same device so if we are running our frontend in laptop than only through locahost we can access it but if we want to access that frontend in our phone than we have to connect with the IP address of our wifi network through which both backend and frontend are connected and through that IP address we can access the frontend in our phone and same applies to backend if we want to access backend in phone than also we have to connect with the same wifi network and through that IP address we can access backend in phone.
-    "http://192.168.1.4:5173",# this is an IP addresss of my wifi network through which backend and frontend both are connected. that means if my phone wants to talk to my laptop network of backend than they can talk through wifi-network like if phone wants to talk with frontend they first have to connect with wifi network than at port 5173 they can talk to frontend and same applies to backend at port 5000 it;s like if you want something to perform from backend tell it via network wifi .
+    "http://localhost:5173",# this is an IP addresss of my wifi network through which backend and frontend both are connected. that means if my phone wants to talk to my laptop network of backend than they can talk through wifi-network like if phone wants to talk with frontend they first have to connect with wifi network than at port 5173 they can talk to frontend and same applies to backend at port 5000 it;s like if you want something to perform from backend tell it via network wifi .
     "http://127.0.0.1:5173"
     #basically aapde same network etle use kariye che kemke agar user koi bhi reuqest ke message ke activity mokalse ee same network ma male so at the time jyare developer ne check karvu hoy ke aa user verify che ke nai tho backend ma joi ne updte kari sake so the main thing was that both requests and repsonse has to reach one device.
 
@@ -71,8 +66,7 @@ migrate = Migrate(app, db)
 jwt = JWTManager(app)
 mail = Mail(app)#connecting my app with mail server so that i can send mail to user for various purposes like sending them otp for verification, sending them mail for password reset, sending them mail for congratulating them on their investment and many more things.
 
-with app.app_context():
-    db.create_all()
+
 
     
 #check-ups & trial route:
@@ -104,7 +98,7 @@ def Sign_up():
         <body style="font-family: Arial, sans-serif; max-width: 500px; margin: 40px auto; color: #333;">
             <h1>Thanks For sigingin up! for <strong>Demo Fintech App</strong></h1>
             <h3>Please Verify yourself by click the link below:
-                <a href="http://192.168.1.4:5173/user/verify_email/{token}" style="display: inline-block; padding: 10px 20px; background-color: #007BFF; color: white; text-decoration: none; border-radius: 5px; margin-top: 20px;">Verify Email</a>         
+                <a href="http://localhost:5173/user/verify_email/{token}" style="display: inline-block; padding: 10px 20px; background-color: #007BFF; color: white; text-decoration: none; border-radius: 5px; margin-top: 20px;">Verify Email</a>         
 
             </h3>
             <p style="margin-top: 20px;">If you did not sign up for this account, please ignore this email.</p>
@@ -782,7 +776,7 @@ def user_dashboard(user,*args,**kwargs):
                         "account_status":account_exists.acc_status,
                         "username":user.username,
                         "acc_type":account_exists.account_type,
-                        "user_wallet":user.user_wallet,
+                        # "user_wallet":user.user_wallet,
                         "last_login_date":user.last_updated.date().isoformat() if user.last_updated else "None",#this isoformat is an converter for datetime objects into string datatypes because except this converter python will not able to convert into json format through which the error will be issued.
                         "last_login_time":user.last_updated.time().isoformat() if user.last_updated else "None",
                         "transaction_data":todays_transaction_data
@@ -790,39 +784,7 @@ def user_dashboard(user,*args,**kwargs):
     set_access_cookies(response,token)
     return response,200
 
-#add balance route:
-@app.route("/user/add_balance_route",methods=['POST','GET'])
-@jwt_required(locations=['cookies'])
-@check_current_user
-def add_balance(user,*args,**kwargs):
 
-    data = request.get_json()
-    
-    account_exists = Account.query.filter_by(user_id=user.id).first()
-    if not account_exists:
-        return jsonify({"message":"Account not exists"}),401
-    
-    deposit_amt = float(data.get('deposit_amt',0.00))
-        
-    if not deposit_amt:
-        return jsonify({"message":"Deposit amount is null"}),400
-    if deposit_amt > user.user_wallet:
-        return jsonify({"message":"No More balance"}),422
-    login = app_login()
-    if login.get('status') not in [200,202]:
-        return jsonify({"message":"Unauthorized token"}),401
-    
-    result = bank_add_balance(account_exists.bank_dec_id,deposit_amt,user.user_wallet)
-    if result.get('status') not in [200,202]:
-        return jsonify({"message":"Balance Cannot be Transferred!","balance":account_exists.balance,"user_wallet":user.user_wallet}),409
-    
-    account_exists.balance += deposit_amt
-    user.user_wallet -= deposit_amt
-    db.session.commit()
-    token = create_access_token(identity=(user.email))
-    response = jsonify({"message":"The balance has been updated successfully","balance":account_exists.balance,"user_wallet":user.user_wallet})
-    set_access_cookies(response,token)
-    return response,200
 
 #transaction route:
 @app.route('/create_order',methods=['POST'])
@@ -847,31 +809,11 @@ def Transfer_Money(user,*args,**kwargs):
         
         
 
-        unique_receipt_id = f"REC_{user.id}_{uuid.uuid4().hex[:6]}"#using UUID for generating uniqwue recipt ID per transaction even the same user performs transaction 100 times for each transaction it creates unique recipt id.
-
-        options = {
-            "amount": amount_in_paisa,
-            "currency":'INR',
-            "receipt":unique_receipt_id
-        }#this is an object or data which razorpay demands to know the amount demanded and currency and recipt no for database tracking.
-        order = client.order.create(data = options)#while becuase of this line when the user clicks on send money the reuqest goes to razorpay server for transaction requests, razorpay verifies our keys like api keys and secret key generated with razorpay and on successfuly verification the razorpay sends the successfuly verification to our backend.
+        
         
         if account1.balance < amount_in_paisa / 100:
             return jsonify({"message":"Insufficent Balance"}),404
-        # if not data.get('latitude') and not data.get('longitude'):
-        #     pass
-
-        # trax1 = (account1.langitude,account1.longitude)
-        # trax2 = (data.get('langitude'),data.get('longitude'))
-
-        # distance = geodesic(trax1,trax2).km #this is an distance which will measure the distance between the two location for ex: if an user-A performs transaction from mumbai at 2:30 and user-A perfroms transaction at 2:45 from delhi than the distance will be mesured how much geopolicital and normally the distance lies between these two cities.
-
-        # time = account1.timestamp - datetime.utcnow()# while this is an time mesure which says what is the difference between transaction performed between revious transaction and current performed transaction, continuing previous example that user-A performs transaction at 2:30 and current transaction which has performed which is let's say 6:20 4 hours that's the time between my two transaction. which also can raise speculation that let's say an user spending from mubai at 2:30 and the same user is spending from delhi at 2:40 the time will be calcualted is 20 minutes which can raise concwrn in 20 mnutes how can person that same person ca travel from mumbai to delhi that's impossible.
-        # time_converts_to_hours = time.seconds()/3600#while we have to convert t into hour becuase if we don;t do so it will be broken and give us unpreditable answer or wrong answer than why as in 1 hour there are 3600 seconds now if there an usuakl flight takes 900km/perhour which means an human can maximum travel 900km/in hour not more than that but usually fintech apps takes 1000km/per hour that why we have to take seconds as hour for comparing two same things at a time hour by hour
-        # #now 
-        # implied_speed = (distance/time_converts_to_hours)# implied_speed means how fastly an user would have traveled to make to transaction happen if it's less than 1000km/h than we will flagged it as green flag else flag as red flag it;s question we are asking like if i want to make this receipe than how much time and cost will needed that's what we are doing it here while implied_speed answer hours seconds like 500km for 0.15 now we have set range which is 1000km/hr if it;s greater than this than it will be flagged as red flag
-        # if implied_speed > 1000:
-        #     return jsonify({"message":"Transaction Cannot Made"}),401
+        
         
         account1.balance -= amount_in_paisa / 100
         account.balance +=  amount_in_paisa / 100
@@ -882,13 +824,11 @@ def Transfer_Money(user,*args,**kwargs):
                                     sender_acc = account1.account_num,
                                     recevier_acc = account.account_num,
                                     category = category,
-                                    wallet_ref = order['receipt'],
+                                    
                                     amount = data.get('amount')
                                     
                                     )
-                                            # latitude = data.get('latitude',''),
-                                            # longitude = data.get('longitude','')
-            
+                                                        
         credit_record = Transaction(transaction_type = "credit",
                                     account_id = account.id,
                                     status ="success",
@@ -909,8 +849,12 @@ def Transfer_Money(user,*args,**kwargs):
             "sender_acc":account1.account_num,
             "reciever_acc":account.account_num,
             "amount":amount_in_paisa / 100,
-            "wallet_ref":order['receipt']
+            "wallet_ref":debit_record.id,
+            "sender_bal":account1.balance,
+            "receiver_bal":account.balance
+            # order['receipt']
         }
+        
 
         result = updation_bal_route(**passing_dict)
         print("🏛️ BANK API RAW RESPONSE:", result)
@@ -918,7 +862,7 @@ def Transfer_Money(user,*args,**kwargs):
             db.session.rollback()
             return jsonify({"message":"Invalid Response, Balance Has not been updated in thr bank backend!"}),401
         
-        return jsonify({"message":"Successfully transferred the amount","order":order,"updated_bal":account1.balance}),200 #while sending that data into frontend
+        return jsonify({"message":"Successfully transferred the amount","updated_bal":account1.balance,"transaction_id":debit_record.id}),200 #while sending that data into frontend "order":order,
     except Exception as e:
         print("❌ CRITICAL BACKEND ERROR:", str(e)) 
         return jsonify({"message":str(e)}),400

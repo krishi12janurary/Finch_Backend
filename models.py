@@ -6,7 +6,7 @@ class User(db.Model):
     username = db.Column(db.String(20), unique=True, nullable=False)
     password = db.Column(db.String(128), nullable=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
-    user_wallet = db.Column(db.Float, nullable=False, default=1000.00)
+    # user_wallet = db.Column(db.Float, nullable=False, default=1000.00)
     role = db.Column(db.String, nullable=False, default="user")
     verify_status = db.Column(db.Boolean, nullable=False, default=False)
     verify_token = db.Column(db.String(150), nullable=False)
@@ -137,7 +137,8 @@ class Transaction(db.Model):
     sender_acc = db.Column(db.String(15),nullable= False)
     recevier_acc = db.Column(db.String(15),nullable= False)
     category = db.Column(db.String(100),nullable=False,default="Food/Beverages")
-    wallet_ref = db.Column(db.String(100),nullable=False,unique=True)
+    # wallet_ref = db.Column(db.String(100),nullable=False,unique=True)
+    
     # langitude = db.Column(db.Float,nullable=True)#whereas it about negative number-90 means the person is transferring money from south side ansd vice-versa
     # longitude = db.Column(db.Float,nullable=True)#measure how far you are from earth east or west as earth is on 0 longitude and if it's say -180 that means you are talking from west side while if it ranges in positive number it means you are from east side position
 
