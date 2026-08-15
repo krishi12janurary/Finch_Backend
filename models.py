@@ -6,7 +6,8 @@ class User(db.Model):
     username = db.Column(db.String(20), unique=True, nullable=False)
     password = db.Column(db.String(128), nullable=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
-    # user_wallet = db.Column(db.Float, nullable=False, default=1000.00)
+    
+
     role = db.Column(db.String, nullable=False, default="user")
     verify_status = db.Column(db.Boolean, nullable=False, default=False)
     verify_token = db.Column(db.String(150), nullable=False)
@@ -49,7 +50,7 @@ class Account(db.Model):
     bank_dec_id = db.Column(db.Integer, unique=True,nullable=False)
     user = db.relationship('User', backref=db.backref('accounts', lazy=True))#this is to create a relationship between user and account table through user_id foreign key and backref is to create a reverse relationship from account to user and lazy true means it will load the related data only when we access it not at the time of querying the database for user details.
     acc_status = db.Column(db.String(20), nullable=False, default="inactive")
-    app_password = db.Column(db.String(255), nullable=False,default="")
+    app_password = db.Column(db.String(255), nullable=False)
     demat_holding = db.relationship('DematAccount',backref=db.backref('account',lazy=True))#ohhh yahhh i mean we will add relationships to accounts becuase we can already query which account-id has demat holding but if i want to ask that back from account side than relationship has to be stick there where we can query like from account that how much demat_holding this account_id has correct with backref = created name account
     account_ifsc = db.Column(db.String(120),nullable=False)
 
@@ -69,6 +70,8 @@ class DematHoldings(db.Model):
     buy_date = db.Column(db.DateTime,default=datetime.utcnow)
     user_investments = db.Column(db.Integer,db.ForeignKey('account.id'))
     invesments = db.relationship('Account',backref=db.backref('invest_user',lazy=True))
+    invest_type= db.Column(db.String(200), nullable=True)
+    
     
 
 class DematAccount(db.Model):

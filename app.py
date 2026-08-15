@@ -7,7 +7,7 @@ from flask_jwt_extended import JWTManager, create_access_token, get_jwt_identity
 import yfinance as yf
 from flask_cors import CORS
 import razorpay
-import uuid #uuid refers to Universally unique identifier.
+import uuid
 from datetime import date, timedelta,datetime
 from user_wrapper import check_current_user
 from sqlalchemy import func
@@ -30,13 +30,13 @@ from geopy.distance import geodesic
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app, supports_credentials=True, origins=[#We are allowing our React frontend to call backend APIs. Backend must specify which frontend origins are trusted. CORS is the rule/configuration that tells the browser whether to allow that frontend to read the backend response.
-    "http://localhost:5173", #now localhost mmeans it's an network which works only at the same device so if we are running our frontend in laptop than only through locahost we can access it but if we want to access that frontend in our phone than we have to connect with the IP address of our wifi network through which both backend and frontend are connected and through that IP address we can access the frontend in our phone and same applies to backend if we want to access backend in phone than also we have to connect with the same wifi network and through that IP address we can access backend in phone.
-    "http://localhost:5173",# this is an IP addresss of my wifi network through which backend and frontend both are connected. that means if my phone wants to talk to my laptop network of backend than they can talk through wifi-network like if phone wants to talk with frontend they first have to connect with wifi network than at port 5173 they can talk to frontend and same applies to backend at port 5000 it;s like if you want something to perform from backend tell it via network wifi .
+CORS(app, supports_credentials=True, origins=[
+    "http://localhost:5173",
+    "http://localhost:5173",
     "http://127.0.0.1:5173"
-    #basically aapde same network etle use kariye che kemke agar user koi bhi reuqest ke message ke activity mokalse ee same network ma male so at the time jyare developer ne check karvu hoy ke aa user verify che ke nai tho backend ma joi ne updte kari sake so the main thing was that both requests and repsonse has to reach one device.
+   
 
-    ])#agar frontend request aa routes par thi aayi than backend will allow and response to the request else not. aa badhi origin frontend ni che to tell backend that where the API calls and request are coming from.
+    ])
 socketio = SocketIO(app,cors_allowed_origins="*")
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -45,7 +45,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config["JWT_TOKEN_LOCATION"] = ["cookies"]
 app.config["JWT_COOKIE_SECURE"] = False
 app.config["JWT_COOKIE_CSRF_PROTECT"] = False
-app.config['MAIL_SERVER'] = 'smtp.gmail.com'#t means say an user sigs-up than to verify his email and message will be sent in form of email in gmail through secured way through port 587 as google has many ports for difference purposes while 587 it's an secure form or way for google to send any email through this port in secure and enrypted way through TIL and when an user will sign the email will be sent through my gmail that from krishibhavikgnadhi we are verifying you.
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
 
@@ -64,7 +64,7 @@ client = razorpay.Client(auth=(os.environ.get('RAZORPAY_TEST_KEY'), os.environ.g
 db.init_app(app)
 migrate = Migrate(app, db)  
 jwt = JWTManager(app)
-mail = Mail(app)#connecting my app with mail server so that i can send mail to user for various purposes like sending them otp for verification, sending them mail for password reset, sending them mail for congratulating them on their investment and many more things.
+mail = Mail(app)
 
 
 
@@ -83,7 +83,7 @@ def Sign_up():
     if user_data:
         return jsonify({"message":"The User is already signed in!"}),202
     
-    token = secrets.token_urlsafe(32)#generates token for the sign-in user.
+    token = secrets.token_urlsafe(32)
     user_data_fill = User(username = data['username'],email =data['email'],verify_token = token,verify_status=False)
     user_data_fill.set_password(data['password'])
     db.session.add(user_data_fill)
@@ -112,12 +112,8 @@ def Sign_up():
             conn.send(msg)
     except Exception as e:
         print(f"Email sending failed: {e}")
-    # try:
-    #     mail.send(msg)
-        
-    # except Exception as error:
-    #     print("Email Sending Failed",error)
-    # return jsonify({"message":"Check Your Mail", "email":user_data_fill.email}),200 
+    
+    return jsonify({"message":"Check Your Mail", "email":user_data_fill.email}),200 
 
 
 @app.route("/user/verify_email/<token>",methods=['GET'])
@@ -155,13 +151,12 @@ def user_login():
 
 
         
-            token = create_access_token(identity=(user.email), expires_delta=timedelta(minutes=10))#this sets expiry time of 30 mintes tied to this token now whenever the cookie will arrice with this request checks the expiry and it ends than it will return token expired.
+            token = create_access_token(identity=(user.email), expires_delta=timedelta(minutes=10))
             response = jsonify({"message":"Login Successfully!","role":user.role})
             
             set_access_cookies(response, token)
             return response,200
-        # will return this http object to frontend so basically cookie is an short-term memory which browser issue for authenicating request and response when the user make request at login with their details the sqlite verfies user and browser issue cookie with the name auth_token in our case in which the token is wrapped as value of auth_token key than stored it till the user logs-out or cookie expires.
-        # so it's basicall sent like body:message, cookie:<token> stored by browser automatically.
+        
         else:
             return jsonify({"message":"Invalid Credentials"}),401
     
@@ -169,48 +164,22 @@ def user_login():
         return jsonify({"message":"User not found or invalid credentials"}),401
 
 #after login the user additional info route:
-@app.route("/user/useradditional/info",methods=['POST'])
+@app.route("/user/useradditional/info",methods=['POST','GET'])
 @jwt_required(locations=['cookies'])
 @check_current_user
 def User_Additional_Info(user,*args,**kwargs):
-    data = request.get_json()
-    detail_found = UserAdditionalInfo.query.filter_by(users_id=user.id).first()
     
-    if detail_found:
-        return jsonify({"message":"User additional info already exists"}),200
-    
-    elif not detail_found:
-        marriage_status = data.get('maritialstatus')
-        if marriage_status.lower() == 'unmarried':
-            unmarried_user_record = UserAdditionalInfo(income=data['income'],
-                                             address=data['address'],
-                                             city=data['selectedcity'],
-                                             state=data['selectedstate'],
-                                             nominee=data['nominee'],
-                                             occupation=data['occupation'],
-                                             earning_members=data['earning_members'],
-                                             total_family_members=data['total_family_members'],
-                                             blood_relation = data['blood_relation'],
-                                             relation_occupation=data['relation_occupation'],
-                                             relation_income=data['relation_income'],
-                                             pincode=data['pincode'],
-                                             age=data['age'],
-                                             gender=data['gender'],
-                                             family_type = data['family_type'],
-                                             maritial_status = data['maritialstatus'],
-                                             users_id=user.id,
-                                             children=0
-
-                                            )
-            
-            db.session.add(unmarried_user_record)
-            db.session.commit()
-            token = create_access_token(identity=(user.email))
-            response = jsonify({"message":"User additional info created successfully"})
-            set_access_cookies(response,token)
-            return response, 200
-        elif marriage_status.lower() == 'married':
-            married_user_record = UserAdditionalInfo(income=data['income'],
+    if request.method == 'POST':
+        data = request.get_json()
+        detail_found = UserAdditionalInfo.query.filter_by(users_id=user.id).first()
+        
+        if detail_found:
+            return jsonify({"message":"User additional info already exists"}),200
+        
+        elif not detail_found:
+            marriage_status = data.get('maritialstatus')
+            if marriage_status.lower() == 'unmarried':
+                unmarried_user_record = UserAdditionalInfo(income=data['income'],
                                                 address=data['address'],
                                                 city=data['selectedcity'],
                                                 state=data['selectedstate'],
@@ -224,33 +193,66 @@ def User_Additional_Info(user,*args,**kwargs):
                                                 pincode=data['pincode'],
                                                 age=data['age'],
                                                 gender=data['gender'],
-                                                maritial_status = data['maritialstatus'],
-                                                children = data['no_of_children'],
                                                 family_type = data['family_type'],
-                                                users_id=user.id
+                                                maritial_status = data['maritialstatus'],
+                                                users_id=user.id,
+                                                children=0
+
                                                 )
-            db.session.add(married_user_record)
-            db.session.commit()
-            token = create_access_token(identity=(user.email))
-            response = jsonify({"message":"User additional info created successfully"})
-            set_access_cookies(response,token)
-            return response, 200
-        else:
-            return jsonify({"message":"Invalid Method type"}),415
-    else:
-        return jsonify({"message":"Unauthorized Access"}),401
-
+                
+                db.session.add(unmarried_user_record)
+                db.session.commit()
+                token = create_access_token(identity=(user.email))
+                response = jsonify({"message":"User additional info created successfully"})
+                set_access_cookies(response,token)
+                return response, 200
+            elif marriage_status.lower() == 'married':
+                married_user_record = UserAdditionalInfo(income=data['income'],
+                                                    address=data['address'],
+                                                    city=data['selectedcity'],
+                                                    state=data['selectedstate'],
+                                                    nominee=data['nominee'],
+                                                    occupation=data['occupation'],
+                                                    earning_members=data['earning_members'],
+                                                    total_family_members=data['total_family_members'],
+                                                    blood_relation = data['blood_relation'],
+                                                    relation_occupation=data['relation_occupation'],
+                                                    relation_income=data['relation_income'],
+                                                    pincode=data['pincode'],
+                                                    age=data['age'],
+                                                    gender=data['gender'],
+                                                    maritial_status = data['maritialstatus'],
+                                                    children = data['no_of_children'],
+                                                    family_type = data['family_type'],
+                                                    users_id=user.id
+                                                    )
+                db.session.add(married_user_record)
+                db.session.commit()
+                token = create_access_token(identity=(user.email))
+                response = jsonify({"message":"User additional info created successfully"})
+                set_access_cookies(response,token)
+                return response, 200
+            else:
+                return jsonify({"message":"Invalid Method type"}),415
         
+        
+        
+    elif request.method == 'GET':
+        userinfo = UserAdditionalInfo.query.filter_by(users_id=user.id).first()
+        if not userinfo:
+            return jsonify({"message":"User Info not Founded"}),401
+        return jsonify({"message":"User FOunded"}),200
     
-
-
-
+    else:
+        return jsonify({"message":"Invalid Type"}),415
+    
+    
 #account creation step routes:
 @app.route("/user/kyc_submit",methods=["POST"])
 @jwt_required(locations=['cookies'])
 def kyc_check():
     current_email = get_jwt_identity()
-    adhar_file = request.files.get("adhar_file")#this all the key inside which the values are being stored.
+    adhar_file = request.files.get("adhar_file")
     pan_file = request.files.get("pan_file")
     face_file = request.files.get("face_path")
     name = request.form.get("name")
@@ -260,7 +262,7 @@ def kyc_check():
 
     
     
-    date = datetime.strptime(dob,'%Y-%m-%d')#converts into datetime format.
+    date = datetime.strptime(dob,'%Y-%m-%d')
 
     current_user = User.query.filter_by(email = current_email).first()
     if current_user:
@@ -269,18 +271,17 @@ def kyc_check():
             if cc.lower() =='india':
                 if pan_file and adhar_file:
 
-                    folder_path = f'kyc_document/user_{current_user.id}'#this creates folder main folder is kyc_document . under which there will be mutiple sub-folder as per user_id
-                    os.makedirs(folder_path, exist_ok=True)#os refers to operating systme which helps python to work with our environemnt like it creates files, and folder in our system.
-                    #so through the above line we are saying through os.makedirs we the sysmten creates directories/folder so we are saying create an folder name mentioned in the pan_path while through above line we saying
-                    #if that named folder already exsits than don't show error that happens becuase of exists_ok=true if we don't write it the python will sjow an filenameerror so writing that is integral.
+                    folder_path = f'kyc_document/user_{current_user.id}'
+                    os.makedirs(folder_path, exist_ok=True)
+                    
 
-                    pan_path = f"{folder_path}/pan.jpeg"# this create folder path so here there will be various folder as per user_id while like here filename will be user_2/pan.jpg
-                    adhar_path = f"{folder_path}/adhar.jpeg"#same with the adhar card user_2/adhar_card so through which there will no clash or messy folder.
+                    pan_path = f"{folder_path}/pan.jpeg"
+                    adhar_path = f"{folder_path}/adhar.jpeg"
                     face_path = f"{folder_path}/face_img.jpg"
-                    #now we will store this path into database while through these we are saving save this image under this folder so image will be saved as kyc_document/user_2/pan.jpg, user_2 s an folder name of that user and which ever document like adhar or pan card will belong to him will saved under this folder with name pan.jpg or adhar.jpg.
+                    
 
                     pan_file.save(pan_path)
-                    adhar_file.save(adhar_path)#while we have to seperately write this becuase this save function only add the img to that folder it doesn't return anything so while if we put that statement in database it will be none so we will put pan_path in which whole path will be stored.
+                    adhar_file.save(adhar_path)
                     face_file.save(face_path)
                     
                     ocr_status,ocr_message = verifying_ocr(
@@ -415,8 +416,8 @@ def otp_verification():
 
         ocr_status = KYC_Model.query.filter_by(user_id = current_user.id).first()
         if ocr_status and ocr_status.ocr_status == True:
-            otp = random.randint(100000,999999)#this will generate an OTP of 6 digit between 10000 -999999 like 456345 and so on.
-            otpexpiry = datetime.now().timestamp() +300# while this line means write current date & time now timestamp means converting current data & time into seconds and than add 300 seconds means 5 minutes to that timestamp so together it means calculate timestamp and than add 5 minutes to that timestamp and than we will get the expiry time of the OTP.
+            otp = random.randint(100000,999999)
+            otpexpiry = datetime.now().timestamp() +300
             current_user.otp_code = otp
             current_user.otp_expiry = otpexpiry
             current_user.otp_status = True
@@ -552,15 +553,15 @@ def Account_holders(user,*args,**kwargs):
         
         existing_account = Account.query.filter_by(user_id=user.id).first()
         print("existing_account",existing_account)
-        if existing_account and existing_account.check_password(data.get('app_password')):
-            print("password",data['app_password'])
+        if existing_account and existing_account.check_password(data.get('app_password','').strip()):
+            print("password Matched",data['app_password'])
             account_token = create_access_token(identity=(user.email))
             response =  jsonify({"message":"Account founded", "account_num":existing_account.account_num, "balance":existing_account.balance})
             set_access_cookies(response, account_token)
                 
             return response,200
         else:
-            print("password",data['app_password'])
+            print("password Mismatched",data['app_password'])
             return jsonify({"message":"Account Not Found!"}),404
         
             
@@ -598,7 +599,7 @@ def Account_holders(user,*args,**kwargs):
 
 #admin panel:
 
-@app.route("/user/kyc_verfying/<int:kyc_id>",methods=["POST"])#we are passing kyc id through frontend 
+@app.route("/user/kyc_verfying/<int:kyc_id>",methods=["POST"])
 @jwt_required(locations=['cookies'])
 @admin_required
 def kyc_verifying(kyc_id):
@@ -608,8 +609,13 @@ def kyc_verifying(kyc_id):
     
     if not kyc_done:
         return jsonify({"message":"Unauthorized User"}),401
-    elif kyc_done and (kyc_done.bank_approved == True and kyc_done.kyc_status == 'verified'):
+    
+    elif kyc_done and kyc_done.kyc_status == 'verified':
+        return jsonify({"message":"Already KYC Verified "}),202
+    
+    elif kyc_done.bank_approved == True and kyc_done.kyc_status == 'verified':
         account = Account.query.filter_by(user_id=kyc_done.user_kyc.id).first()
+        temp_pass = secrets.token_urlsafe(6)
         msg = Message('Account Succession Verification',
                   sender='krishibhavikgandhi@gmail.com',
                   recipients=[kyc_done.user_kyc.email]
@@ -648,7 +654,7 @@ def kyc_verifying(kyc_id):
 
     kyc_done.kyc_status = 'verified'
     kyc_done.bank_approved = True
-    temp_pass = secrets.token_urlsafe(6)
+    
     account_created = Account(account_num=result.get('account_num'),account_ifsc = result.get('account_ifsc'),balance=result.get('balance'),user_id=kyc_done.user_kyc.id,bank_dec_id=result.get('bank_user_id'))
     account_created.set_password(temp_pass)
     db.session.add(account_created)
@@ -714,7 +720,7 @@ def approved_candidate_list():
             "kyc_approved":kyc_in.kyc_status
         })
     email = g.current_user
-    token = create_access_token(identity=(email))#okay so it will be like find kyc_id than foreign key for that kyc_record let's say if it's 1 than user_id is 2 so through backref we will see or find the user_id 2 in user_table and their email?correcT?yes
+    token = create_access_token(identity=(email))
     response = jsonify({"message":"Approved kyc list", "kyc_list_record":kyc_list_proved})
     set_access_cookies(response,token)
     return response, 200
@@ -735,9 +741,9 @@ def admin_only_access():
             "username":u.username,
             "email":u.email,
             "Exists_Or_Not":"Account Exists" if u.accounts else "Account Not Exists!",
-            "Has_Account":u.accounts[0].acc_status if u.accounts else "No Account Found!",#why iterating becuase if we only write u.accounts it will return the whole account lists tied to that user but hre we want only acc_status fields or columns for that we are saying get the first account object whic we get through [0] and from that get the status columns only and than the results are being displayed.
+            "Has_Account":u.accounts[0].acc_status if u.accounts else "No Account Found!",
             "demat_have":"Account Exists" if u.accounts and u.accounts[0].user_demat else "No Demat Exists!",
-            "Investment":"Have Investments" if u.accounts and u.accounts[0].invest_user else "No investments has been made"#so eventually "demat_have": "Demat Exists" if u.account and u.account.user_demat else "No Demat Exists!" here the ID which are foreign keys theat are being checked which is an common factor between this tables and becuase of which these tables are linked
+            "Investment":"Have Investments" if u.accounts and u.accounts[0].invest_user else "No investments has been made"
             })
     print("User Record Fetched Successfully!")
     return jsonify({"message":"User records fetched successfully!","u_records":user_records}),200
@@ -755,19 +761,37 @@ def user_dashboard(user,*args,**kwargs):
     if not account_exists:
         return jsonify({"message":"You don't hold account"}),401
     today_date  = date.today()
+    todays_investments = DematHoldings.query.filter_by(invest_type='buy').filter(func.date(DematHoldings.buy_date) == today_date).order_by(DematHoldings.buy_date.desc()).all()
     todays_transaction = Transaction.query.filter_by(sender_acc=account_exists.account_num,transaction_type='debit').filter(func.date(Transaction.timestamp) == today_date).order_by(Transaction.timestamp.desc()).all()
     
     todays_transaction_data = []
     for transaction in todays_transaction:
         todays_transaction_data.append({
+            "entry_type":"transactions",
             "timestamp":transaction.timestamp,
             "amount":transaction.amount,
             "transaction_type":transaction.transaction_type,
-            "category":transaction.category,
+            "category":transaction.category
+           
         })
+    
+    for invest in todays_investments:
+        todays_transaction_data.append({
+            "entry_type":"investments",
+            "stock_name":invest.stock_name,
+            "amount":invest.buy_price * invest.quantity,
+            
+            "timestamp":invest.buy_date,
+            "quantity":invest.quantity
+        })
+    todays_transaction_data.sort(key=lambda x: x["timestamp"], reverse=True)
+
+    tranx = sum([i.amount for i in todays_transaction if i.transaction_type == 'debit'])
+    invests = sum([s.buy_price*s.quantity for s in todays_investments if s.invest_type == 'buy'])
+    today_spent = tranx + invests
 
     
-    user.last_updated = datetime.utcnow()#this utcnow will store the date and time both at same time
+    user.last_updated = datetime.utcnow()
     db.session.commit()
     token = create_access_token(identity=(user.email))
     response = jsonify({"message":"Account Founded", 
@@ -776,10 +800,11 @@ def user_dashboard(user,*args,**kwargs):
                         "account_status":account_exists.acc_status,
                         "username":user.username,
                         "acc_type":account_exists.account_type,
-                        # "user_wallet":user.user_wallet,
-                        "last_login_date":user.last_updated.date().isoformat() if user.last_updated else "None",#this isoformat is an converter for datetime objects into string datatypes because except this converter python will not able to convert into json format through which the error will be issued.
+                        "last_login_date":user.last_updated.date().isoformat() if user.last_updated else "None",
                         "last_login_time":user.last_updated.time().isoformat() if user.last_updated else "None",
-                        "transaction_data":todays_transaction_data
+                        "transaction_data":todays_transaction_data,
+                        "today_spend":today_spent
+                        
                         })
     set_access_cookies(response,token)
     return response,200
@@ -793,7 +818,7 @@ def user_dashboard(user,*args,**kwargs):
 def Transfer_Money(user,*args,**kwargs):
     data = request.get_json()
     try:
-        amount= int(data.get('amount')) #raxorpay doesn't understand amount in decimal like 500.00 so we convert it into pasia by mulitplying with 100 500.00 * 100  = 50000 rupees that's why we multiplied with 100 
+        amount= int(data.get('amount'))
         amount_in_paisa = amount * 100
         category = data.get('category')
         reciever_acc = data.get('reciever_acc_num')
@@ -852,7 +877,7 @@ def Transfer_Money(user,*args,**kwargs):
             "wallet_ref":debit_record.id,
             "sender_bal":account1.balance,
             "receiver_bal":account.balance
-            # order['receipt']
+            
         }
         
 
@@ -877,12 +902,13 @@ def transaction_records(user,*args,**kwargs):
         account = Account.query.filter_by(user_id=user.id).first()
         if not account:
             return jsonify({"message":"Unauthorized User"}),401
-        
+        credit_invests = DematHoldings.query.filter_by(user_investments=account.id,invest_type='sell').all()
         credits_details = Transaction.query.filter_by(account_id=account.id,transaction_type='credit').all()
         
         credits_his = []
         for t in credits_details:
             credits_his.append({
+                "entry_type":"transactions",
                 "transaction_no":t.id,
                 "amount":t.amount,
                 "transaction_type":t.transaction_type,
@@ -890,10 +916,20 @@ def transaction_records(user,*args,**kwargs):
                 "datetime":t.timestamp,
                 "status": t.status
                 })
+        for t2 in credit_invests:
+            credits_his.append({
+                "entry_type":"investments",
+                "stock_name":t2.stock_name,
+                "amount":t2.buy_price * t2.quantity,
+                "timestamp":t2.buy_date,
+                "quantity":t2.quantity
+            })
         debits_his = []
         debit_details = Transaction.query.filter_by(account_id=account.id, transaction_type='debit').all()
+        debit_invest = DematHoldings.query.filter_by(user_investments=account.id,invest_type='buy').all()
         for t1 in debit_details:
             debits_his.append({
+                "entry_type":"transactions",
                 "transaction_no":t1.id,
                 "amount":t1.amount,
                 "transaction_type":t1.transaction_type,
@@ -901,8 +937,18 @@ def transaction_records(user,*args,**kwargs):
                 "datetime":t1.timestamp,
                 "status": t1.status
                 })
+        for i in debit_invest:
+            debits_his.append({
+                "entry_type":"investments",
+                "stock_name":i.stock_name,
+                "amount":i.buy_price * i.quantity,
+                "timestamp":i.buy_date,
+                "quantity":i.quantity
+            })
+
         
         return jsonify({"message":"Successfully submitted","credit_record":credits_his,"debit_record":debits_his}),200
+    
     elif data.get('type')  == 'filter_transaction':
         account = Account.query.filter_by(user_id=user.id).first()
         if not account:
@@ -926,44 +972,60 @@ def transaction_records(user,*args,**kwargs):
         year = data.get('year')
         month = data.get('month')
 
-        month_start_date = datetime(year,month,1)#here we are converting simple number accepted from frontened to datetime object and as month start date which is actually selected by users which includes year, month, and 1 date of the month so whenever user selects the month we typically takes 1 date of that month and also takes the end day by adding into month and 1st date of that month will be called as or 1 month
+        month_start_date = datetime(year,month,1)
 
         if month == 12:
-            month_end_date = datetime(year+1,1,1)#here we are telling that let's say if user select the month 12 decenber as in one year there are only 12 months if user selects the 12 and than end date would be 13 as end date but 13 is not an month nor the same year so that why we are clarifying that when the user slect the the month 12 than take the end date as 1st januaray(1month) and year+1 = 2027 which will count as new year an 1 month and 1 date of that month
+            month_end_date = datetime(year+1,1,1)
         else:
-            month_end_date = datetime(year, month+1, 1)#while here we are telling if user selects let's say month = 5 which is may than add one 1 + month = which is 6 ends on 2026,6,1 which completes the 1 month and exclude the first day of feb month which will provide the results till 30th of july till 23:59:59 
+            month_end_date = datetime(year, month+1, 1)
 
         month_records = Transaction.query.filter(Transaction.account_id==account.id,
                                                 Transaction.timestamp >= month_start_date,
-                                                Transaction.timestamp < month_end_date, #so we are telling here that let's say user select month 1 januaray okay now it will click esle part and add like = 2026,2,1  which will end at feburary 1 date now when we write < end-date we are telling check in the timestamp that there is less than this end_date value which means it will check till 31st janurary 23:59:59 as we are saying it should be less than end_date which says not even 00:00 so that feb -1 partr gets excluded so why 2026,2,1 is excluded becuase users selected he wants to see all his transaction of month januarary he has just slected an month not an date so if user select jauaray than 31st janrary completes the one month and if users slectes with the date like 4th of janurary than how the month is counted 4th janurary to 3rd feburary 2026 that completes the month as januraRY has 31 days total days as per months commits and says when the month gets completed  so for example if user select july 10 thn july has 31 days than we will count the days which should be complete 31 and that ends on 9th of august that's an month
+                                                Transaction.timestamp < month_end_date,
                                                 Transaction.transaction_type == 'debit'
                                                 ).all()
-        if not month_records:
+        invest_month_records = DematHoldings.query.filter(DematHoldings.user_investments==account.id,
+                                                        DematHoldings.buy_date >= month_start_date,
+                                                        DematHoldings.buy_date < month_end_date,
+                                                        DematHoldings.invest_type == 'buy'
+                                                        ).all()
+        if not month_records and not invest_month_records:
             return jsonify({"message":"Records cannot found!"}),404
         monthly_records = []
         for mr in month_records:
             monthly_records.append({
+                "entry_type":"transactions",
                 "amount":mr.amount,
                 "transaction_type":mr.transaction_type,
                 "category":mr.category,
                 "status":mr.status,
                 "timestamp":mr.timestamp
             })
-        debit_total = sum(d.amount for d in month_records if d.transaction_type == "debit")
-        # credit_total = sum(d.amount for d in month_records if d.transaction_type == "credit")
+        for i in invest_month_records:
+            monthly_records.append({
+                "entry_type":"investments",
+                "stock_name":i.stock_name,
+                "amount":i.buy_price * i.quantity,
+                "timestamp":i.buy_date,
+                "quantity":i.quantity
+            })
+        tranx_sum = sum(d.amount for d in month_records if d.transaction_type == "debit")
+        invest_sum = sum([i.buy_price* i.quantity for i in invest_month_records if i.invest_type == 'buy'])
+        debit_total = tranx_sum + invest_sum
+        
 
         #pie chart
-        pie_chart_data = db.session.query(# we are using session.query becuase is an flexible way to calcualte and work for aggregated and grouping values i mean when we write transaction.query it filter inside that particular table and find s the whole row but when we want to perform grouping or wrk on aggregated data we use db.session who will directly query database and watch for the values we want from that tables 
-            Transaction.category.label('category'),#happens-3 than this happens where group categroy names are being desinged inan group which says return the group_by dairy ,skincre,beverages as a column with name category and their summed up value with the name amoun
+        pie_chart_data = db.session.query(
+            Transaction.category.label('category'),
             func.sum(Transaction.amount).label('total_amount')
-        ).filter(#happens-1
-            Transaction.account_id == account.id,#what happens is filter the rows as mentioned month s & e date and rows with debit only type okay that's all
+        ).filter(
+            Transaction.account_id == account.id,
             Transaction.timestamp >= month_start_date,
             Transaction.timestamp < month_end_date,
             Transaction.transaction_type == "debit"
-        #transaction.category.label('categroy') looks inside row 1 and 3 of actuall transaction mode's category table their they see the nameis skincare and takes that put that category name label on that so group_by gives the rows which has been collapsed while transaction.categry actaully goes into that category name see which value or name is their and fetch that
-        ).group_by(#happens-2
-            Transaction.category#than after filtering the grouping happens where skincare against it price [10,30,67] like this while group by drop by duplicates than group category with it's multiple amount not yet summed
+        
+        ).group_by(
+            Transaction.category
         )
         pie_data = []
         for p in pie_chart_data:
@@ -986,14 +1048,18 @@ def transaction_records(user,*args,**kwargs):
         ).group_by(
             func.date(Transaction.timestamp)
         ).all()
-        if not line_chart_data:
-            return jsonify({"message":"data is empty","list":[]}),404
+
+        
+
+        
+       
         chart_data = []
         for l in line_chart_data:
             chart_data.append({
                 "day":l.day,
                 "total_amount":l.total_amount #on label baiss we return this or call this value
             })
+        
 
 
 
@@ -1005,27 +1071,45 @@ def transaction_records(user,*args,**kwargs):
         if not account:
             return jsonify({"message":"Account Not Found!"}),401
         datee = data.get('StartDate')
-        start_date = datetime.strptime(datee,'%Y-%m-%d')#will convert string to datetime but for converting datetime to string we will use strftime like datee.strftime('%Y-%m-%d').
-        #now adding timedelta becuase let's say an user selects timeframe between 20-07-26 to 20-07-26 now the transaction are being diclosed is till 00:00 12 clock of midnight of the sameday which is just the starting of the day so mostly it will exclude the whole day transaction records and only transactions performed at exact 12:00 will be last recorded so adding another whole day we are making sure that whole 20th date from 12;00 to 21st 12:00 the transaction records gets disclosed.
-        end_date = start_date + timedelta(days=1)#now here why we have not added timedelta to start date only so timedelta adds the one + value current to now so let's say today is 1 than while adding timedelta (days=1) it will give us 2 so when we put this or add this to start date what user actually ask for 1 date transaction log but he is getting 2-nd date transaction log that's bug so that's why we had taken the end date saying show me the record of whole 1 date so even if user enters 1 than he will able to see the data of 1st date only okay so even when we take input from user like start_date , end date? to show them records between this day in start date we take say like 1st date and end date is 15 that means user wants to see records from 1st date to 15th date records now here we will use the before wala start and end logic where swe took both start and end and on end date we had just added timedelta so that users can see the whole transaction data for the date 15 here in the end we added timedelta(1) which stands and means the same as now that takes one full day that's takes 15 full till 23:59:59 not even 16th 00:00 it gets excluded so we added timedetla so it calculate the 15 whole day ptherwise it will gove the result till 14th and exclude the 15th which is not user wants
+        start_date = datetime.strptime(datee,'%Y-%m-%d')
+        
+        end_date = start_date + timedelta(days=1)
         lists = []
         view_records = Transaction.query.filter(Transaction.account_id == account.id,
                                                 Transaction.timestamp >= start_date,
                                                 Transaction.timestamp < end_date,
                                                 Transaction.transaction_type == 'debit'
-                                                ).all()#in sqlalchemy we will always use , in filter and filter_by and sqlalchemy doesn'r understand his operations as it is python thing so yaa.
-        if not view_records:
+                                                ).all()
+        view_investments = DematHoldings.query.filter(DematHoldings.user_investments == account.id,
+                                                DematHoldings.buy_date >= start_date,
+                                                DematHoldings.buy_date < end_date,
+                                                DematHoldings.invest_type == 'buy'
+                                                ).all()
+        if not view_records and not view_investments:
             return jsonify({"message":"We could not found transaction history for that sepcific date please verify the date"}),404
         for record in view_records:
             lists.append({
+                "entry_type":"transactions",
                 "amount":record.amount,
                 "transaction_type":record.transaction_type,
                 "category":record.category,
                 "status":record.status,
                 "timestamp":record.timestamp
         })
-        debit_sum = sum(d.amount for d in view_records if d.transaction_type == 'debit')
-        # credit_sum = sum(i.amount for i in view_records if i.transaction_type == 'credit')
+        for i in view_investments:
+            lists.append({
+                "entry_type":"investments",
+                "stock_name":i.stock_name,
+                "amount":i.buy_price*i.quantity,
+                "quantity":i.quantity,
+                "timestamp":i.buy_date
+            })
+        debits = sum(d.amount for d in view_records if d.transaction_type == 'debit')
+        invest_debits = sum([f.buy_price*f.quantity for f in view_investments if f.invest_type == 'buy'])
+
+        debit_sum = debits + invest_debits
+
+        
         return jsonify({"message":"Success","date_wise_records":lists,"debit_total":debit_sum}),200
     
     elif data.get('type') == 'year_wise':
@@ -1034,7 +1118,7 @@ def transaction_records(user,*args,**kwargs):
             return jsonify({"message":"Unauthorized User"}), 401
 
         year = int(data.get('selectyear'))
-        year_start_date = datetime(year, 1, 1)#user_entered_year let's say 2026 will take month 1 and date 1 and end date will be 2026 + 1 which means it will take  < than 2027,1,1 we added +1 here becuase we are saying when user select 2026 and end 2026 + 1  = 2027 if we don't do these +1 which says where to stop so without +1 we are giving start and end same 2026,2026 now whe we put the condition that timestamp >= year thst mesns year which is selected by user should be >= now it's equals to 2026 now for the end we are saying it should be less than 2026 than means if we take 2026 as start and 2026 as ending so beofre even eaching heading towards 2026 00:01 it will stop and return empty lists  as there is no range only between these year so that why we do +1 which will exclude the 2027 1,1 but include the whole 2026 year
+        year_start_date = datetime(year, 1, 1)
         year_end_date = datetime(year + 1, 1, 1)
 
         find_transaction = Transaction.query.filter(
@@ -1042,14 +1126,22 @@ def transaction_records(user,*args,**kwargs):
             Transaction.timestamp >= year_start_date,
             Transaction.timestamp < year_end_date,
             Transaction.transaction_type == 'debit'
-        ).order_by(Transaction.timestamp.asc()).all()#without these order_by the records presentation will not be done correctly that's why we have written these else there is nothing to do here for logic or anything else
+        ).order_by(Transaction.timestamp.asc()).all()
 
-        if not find_transaction:
+        find_investments = DematHoldings.query.filter(
+                    DematHoldings.user_investments == account.id,
+                    DematHoldings.buy_date >= year_start_date,
+                    DematHoldings.buy_date < year_end_date,
+                    DematHoldings.invest_type == 'buy'
+                ).order_by(DematHoldings.buy_date.asc()).all()
+
+        if not find_transaction and not find_investments:
             return jsonify({"message":"Transaction Not found!"}),404
 
         lists = []
         for t in find_transaction:
             lists.append({
+                "entry_type":"transactions",
                 "transaction_type":t.transaction_type,
                 "amount": t.amount,
                 "category": t.category,
@@ -1057,9 +1149,20 @@ def transaction_records(user,*args,**kwargs):
                 "status": t.status
                 
             })
+        for i in find_investments:
+            lists.append({
+                "entry_type":"investments",
+                "stock_name":i.stock_name,
+                "amount":i.buy_price*i.quantity,
+                "timestamp":i.buy_date,
+                "quantity":i.quantity
+            })
 
-        debit_sum = sum(d.amount for d in find_transaction if d.transaction_type == 'debit')
-        # credit_sum = sum(i.amount for i in find_transaction if i.transaction_type == 'credit')
+        transx_sum = sum(d.amount for d in find_transaction if d.transaction_type == 'debit')
+        invest_s = sum([d.buy_price *d.quantity for d in find_investments if d.invest_type == 'buy'])
+        debit_sum  = transx_sum + invest_s
+
+        
 
         year_line_chart = db.session.query(
             func.strftime('%m',Transaction.timestamp).label('month'),
@@ -1070,10 +1173,9 @@ def transaction_records(user,*args,**kwargs):
             Transaction.timestamp < year_end_date,
             Transaction.transaction_type == 'debit'
         ).group_by(
-            func.strftime('%m',Transaction.timestamp)#func.strftime('%m', Transaction.timestamp).label('month')so this func.strftime will fetch the month and convert it into string format from the transaction.timestamp so always remember that whenever we want to fetch the month from the timstamp column the func.stftime fetches the month  i mean firstly they will convert the datetime into string and than fetches out month in string format.
+            func.strftime('%m',Transaction.timestamp)
         )
-        if not year_line_chart:
-            return jsonify({"message":"Transaction data not found!"}),404
+        
         yearly_data = []
         for y in year_line_chart:
             yearly_data.append({
@@ -1082,7 +1184,7 @@ def transaction_records(user,*args,**kwargs):
             })
 
         yearly_pie_data = db.session.query(
-            Transaction.category.label('category'),#Transaction.category in the SELECT → not scanning individual rows anymore. It’s just pulling the group’s category value.
+            Transaction.category.label('category'),
             func.sum(Transaction.amount).label('total_amount')
         ).filter(
             Transaction.account_id == account.id,
@@ -1093,8 +1195,7 @@ def transaction_records(user,*args,**kwargs):
             Transaction.category
         )
 
-        if not yearly_pie_data:
-            return jsonify({"message":"Success","data":[]}),404
+        
         pie_data = []
         for data in yearly_pie_data:
             pie_data.append({
@@ -1131,15 +1232,23 @@ def year_calender(user,*args,**kwargs):
     if not account:
         return jsonify({"message":"Account not found!"}),401
     transaction_year = Transaction.query.filter_by(account_id=account.id)\
-                    .order_by(Transaction.timestamp.asc()).first() #here firstly we are sequencing transaction data into sorted way like old transaction date first and current r recently or lastest transaction added lastly so yaa through order by we are sorting them 
-                #while \ refers to nothing here but integral to keep or write becuase it says the condition orderby is in continuion condition not an seperate to aviod error or buugs
-    if not transaction_year:
+                    .order_by(Transaction.timestamp.asc()).first()
+                
+    #investment years:
+    investments_year = DematHoldings.query.filter_by(user_investments=account.id)\
+                        .order_by(DematHoldings.buy_date.asc()).first()
+    if not transaction_year and not investments_year:
         return jsonify({"message":"Record not found", "years":[]}),404
 
-    start_year = transaction_year.timestamp.year#2026
+    transaction_start_year = transaction_year.timestamp.year if transaction_year else None  #2026[2026]
+    investment_start_year = investments_year.buy_date.year if investments_year else None  #2026[2027]
+    possible_years = [y for y in [transaction_start_year,investment_start_year] if y is not None]#[2027,2026]
+
+    start_year = min(possible_years)
     current_year = datetime.utcnow().year
 
-    years = list(range(start_year,current_year+1))#this +1 here is different and completely different topic and logic compared to previous date one logic here we are using range where we mention start,end,step the same way we have done that too here we said start with 2026 first record to current now that current + 1 which will store 2027 but as we know range shows and adds or consider the number before that end number [2026,2026] if we write like these than range will send [] list as we know 2026 will not be count but when we write 2026,2027 than it will easily give us the 2026 record only by excluding 2027.
+
+    years = list(range(start_year,current_year+1))
     return jsonify({"message":"Successfully send year list","years":years}),200
 
 
@@ -1265,16 +1374,16 @@ def insert_demat_record(user_exists,*args,**kwargs):
 def get_live_stock_data(stripe):
     
     
-    stock = yf.Ticker(f"{stripe}.NS")#extract the mentioned company stocks data
+    stock = yf.Ticker(f"{stripe}.NS")
 
-    data = stock.history(period="1d", interval="1m")#here we are saying show me 1 day minute-minute change of stocks price movements
+    data = stock.history(period="1d", interval="1m")
     if data.empty:
         return "Data not found",409
-    lastest = data.tail(1)#today's lastest price changed for that company provide me that while row
+    lastest = data.tail(1)
     
     return {
-        'price':float(lastest['Close'].values[0]),#picking the closed priced of the day on which the stock was traded last 
-        'volatality':round(lastest['High'].values[0] - lastest['Low'].values[0].min(),2)#while the price shows the current price and this volatality shows as the number increases the volatality in minutes is increased and that called extremem volatality for ex: the high is 50 and low is 10 the difference 40 that means average volatality if the difference is 5 that means smooth and as it number rises it shows volatality condition in an minute.
+        'price':float(lastest['Close'].values[0]),
+        'volatality':round(lastest['High'].values[0] - lastest['Low'].values[0].min(),2)
     }
 
 
@@ -1286,8 +1395,8 @@ def live_market_updates(data):
     stripe = data.get("stripe").upper().strip()
     if not stripe:
         return jsonify({"message":"Stripe is empty"}),401
-    sid = request.sid #an key of generated secret-key to identity the user so what happens is when the client connect to socket-io network the browser creates an key for that specific user and that password is store as key with the value which consists the company name so let's say user-1 connect to socket network the network or browser creates an passkey which will help socket to recognise from where the rerquest is coming so we are storing that passkey as sid in active and value will be the company name which will eb stored against their passkey so let's say user-1 first sleects RELIANCE than user-1 slects Bajajfinace so the key remain save which will be recognised and the only company name changes.
-    active_stock[sid] = stripe#company name as value to their connection passkey.
+    sid = request.sid 
+    active_stock[sid] = stripe
     print(f"sid:{sid}, stripe:{stripe}, active_stock{active_stock}")
     
     
@@ -1300,9 +1409,9 @@ def live_market_updates(data):
         data = get_live_stock_data(stripe)
 
             
-        socketio.emit('market_update',data,room=sid)#while this room refers to it tells sid to whom to show the company's price which directly cut to show all the people who are connected to the network. through room we are saying provide this information to those to whom it belongs or who it request instead of broadcasting t every client connected to this socket network.
-            #emit here the commentory person who speaks every 5 seconds the updated scores while inside it the data is there price and volatality and return as data with message to the app users market update or any name we want to keep.
-        socketio.sleep(5)#the seconds we want in how much second the updates you want .
+        socketio.emit('market_update',data,room=sid)
+            
+        socketio.sleep(5)
    
 @app.route("/user/Buy_Stock",methods=['POST'])
 @jwt_required(locations=['cookies'])
@@ -1326,7 +1435,7 @@ def buy_sell_stock(user_exists,*args,**kwargs):
             if totalPrice > account_have.balance:
                 return jsonify({"message":"Insufficient Balance!"}),404
             account_have.balance -= totalPrice
-            new_stock_holding = DematHoldings(stock_name = data['company'],quantity=quantity,buy_price = totalPrice ,user_investments=account_have.id)
+            new_stock_holding = DematHoldings(stock_name = data['company'],quantity=quantity,buy_price = totalPrice ,user_investments=account_have.id,invest_type='buy')
             db.session.add(new_stock_holding)
             db.session.commit()
             token = create_access_token(identity=(user_exists.email))
@@ -1351,11 +1460,12 @@ def buy_sell_stock(user_exists,*args,**kwargs):
         if not holds_or_not:
             return jsonify({"message":"You don't hold this share!"}),401
         if holds_or_not and holds_or_not.quantity >= sell_quantity:
-            avg_price = holds_or_not.buy_price / holds_or_not.quantity #find or calcualtes the average price which says on an average how much you gained per share let's say an average comes out 5 than on each share you gained 5 rupee averagely which shows and used only for showing the user how much he gained on an average from his investment.
-            returns = (price - avg_price) * sell_quantity #this explain let's say and today price is 100 each for one share and avg price is 200 than we subtract we get 100 * quantity say 50 5000 is the acutal returns you gained on 50 shares total while the previous one show or calcualte the profit or average price of one share while this shows accumulated profit
-            holds_or_not.buy_price -= avg_price * sell_quantity # here we are showing and subtracting that after deducting how much total investment is being there.
+            avg_price = holds_or_not.buy_price / holds_or_not.quantity
+            returns = (price - avg_price) * sell_quantity
+            holds_or_not.buy_price -= avg_price * sell_quantity 
             holds_or_not.quantity -= sell_quantity
-            account_have.balance += price * sell_quantity #while in the balance the thing which only go is current price of that share and quantity he wants to sell
+            account_have.balance += price * sell_quantity
+            holds_or_not.invest_type = 'sell'
             db.session.commit()
             token = create_access_token(identity=(user_exists.email))
             response = jsonify({"message":"The sell order has been placed successfully!","updated_balance" :account_have.balance,"accumulated_returns":returns,"avg_price":avg_price,"total_investment":holds_or_not.buy_price,"updated_quantity":holds_or_not.quantity })
@@ -1370,7 +1480,7 @@ def buy_sell_stock(user_exists,*args,**kwargs):
 
 @socketio.on('disconnect')
 def handle_disconnect():
-    active_stock.pop(request.sid , None)# this will remove and clean up the delted things clearly so it run smoothly.
+    active_stock.pop(request.sid , None)
 
 #only company list route:
 @app.route("/user/fetching_company_list",methods=['GET'])
@@ -1481,21 +1591,7 @@ def getting_sector_based_price(user_exists,*args,**kwargs):
     set_access_cookies(response,token)
     return response,200
 
-# @app.route("/user/check_user_credentials",methods=['POST'])
-# @jwt_required(locations=['cookies'])
-# @check_current_user
-# def check_user_credentials(user_exists,*args,**kwargs):
-#     data = request.get_json()
-#     if data.get('hasAccount') == 'yes' and data.get('kycVerified') == 'yes':
-#         account_exists = Account.query.filter_by(user_id=user_exists.id).first()
-#         if not account_exists:
-#             return jsonify({"message":"Account not found!"}),401
-#         token = create_access_token(identity=(user_exists.email))
-#         response = jsonify({"message":"User has account and kyc verified!","account_num":account_exists.account_num,"name":user_exists.username,"kyc_status":"verified"})
-#         set_access_cookies(response,token)
-#         return response,200
-#     else:
-#         return jsonify({"message":"User don't have account or kyc not verified!"}),401
+
 
 
 
