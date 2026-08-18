@@ -27,7 +27,7 @@ import requests
 import os
 from dotenv import load_dotenv
 from geopy.distance import geodesic
-load_dotenv()
+load_dotenv(os.path.join(os.path.dirname(__file__), '.env'))
 
 app = Flask(__name__)
 CORS(app, supports_credentials=True, origins=[
@@ -48,13 +48,13 @@ app.config["JWT_COOKIE_CSRF_PROTECT"] = False
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
-
 app.config['MAIL_SUPPRESS_SEND'] = False
+app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_USERNAME')
 
 app.config['API_KEY'] = os.environ.get('API_KEY')
 app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY')
 app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
-app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
+app.config['MAIL_PASSWORD'] = (os.environ.get('MAIL_PASSWORD') or '').replace(' ', '')
 app.secret_key = os.environ.get('APP_SECRET_KEY')
 client = razorpay.Client(auth=(os.environ.get('RAZORPAY_TEST_KEY'), os.environ.get('RAZORPAY_SECRET_KEY')))
 
@@ -439,8 +439,9 @@ def otp_verification():
                 <h3>Your OTP for KYC verification is: <strong>{otp}</strong></h3>
                 <p style="margin-top: 20px;">Please do not share this OTP with anyone.</p>
                 <h4>Thank You!</h4>
-            </html>
             </body>
+            </html>
+            
                 '''
             mail.send(msg)
 
@@ -520,7 +521,7 @@ def create_app_password():
                     <body style="font-family: Arial, sans-serif; max-width: 500px; margin: 40px auto; color: #333;">
                         <h1>Password Updation Message</h1>
 
-
+                        
                        
                         <h3>Your password has been updated successfully! </h3>
                         <h4>Thank You!</h4>
@@ -579,7 +580,7 @@ def Account_holders(user,*args,**kwargs):
             
             if existing_account:
 
-                return jsonify({"message":"You already hold account"}),202
+                return jsonify({"message":"You already hold account"}),200
             
             elif kyc_status and kyc_status.ocr_status == True:
                 return jsonify({"message":"You're KYC verified!"}),202
@@ -599,67 +600,121 @@ def Account_holders(user,*args,**kwargs):
 
 #admin panel:
 
-@app.route("/user/kyc_verfying/<int:kyc_id>",methods=["POST"])
+@app.route("/user/kyc_verfying/<int:kyc_id>",methods=["POST",'GET'])
 @jwt_required(locations=['cookies'])
 @admin_required
 def kyc_verifying(kyc_id):
-    
-    kyc_done = KYC_Model.query.filter_by(id=kyc_id).first()
-    
-    
-    if not kyc_done:
-        return jsonify({"message":"Unauthorized User"}),401
-    
-    elif kyc_done and kyc_done.kyc_status == 'verified':
-        return jsonify({"message":"Already KYC Verified "}),202
-    
-    elif kyc_done.bank_approved == True and kyc_done.kyc_status == 'verified':
-        account = Account.query.filter_by(user_id=kyc_done.user_kyc.id).first()
-        temp_pass = secrets.token_urlsafe(6)
-        msg = Message('Account Succession Verification',
-                  sender='krishibhavikgandhi@gmail.com',
-                  recipients=[kyc_done.user_kyc.email]
-                )
-        msg.html = f'''
-        <!Doctype html>
-        <html>
-            <body style="font-family: Arial, sans-serif; max-width: 500px; margin: 40px auto; color: #333;">
-                <h1>Thanks For Account opening! for <strong>Demo Fintech App</strong></h1>
-                <h3>Please Go through your Account Details attach below:
-                    <h3>Account Number:{account.account_num}</h3>
-                    <h2>IFSC Code: {account.account_ifsc}</h2>
-                    <p>Now Please visit the app and create an app password key to maintain app and your security</p>
-
-                </h3>
-                <h5>IMP Note: Use this  {temp_pass} as your temporary password to login into your account and create an app password key for your security purpose!</h5>
-                <h4>Go toyour profile section -> Click Change Password than update your password</h4>
-                
-                
-                <h4>Thank You!</h4>
-
-            </body>
-        </html>
-        '''
-        mail.send(msg)
-        return jsonify({"message":"Email sent successfully!"}),200
+    if request.method == 'POST':
+        kyc_done = KYC_Model.query.filter_by(id=kyc_id).first()
         
-    result1 = app_login()
-    if result1.get('status') not in [200,202]:
-        return jsonify({"message":"Invalid Token"}),401
-    result = collecting_user_status(kyc_id)
-    if result.get('status') not in [200,202]:
-        return jsonify({"message":"Invalid Response"}),402
-    
+        
+        if not kyc_done:
+            return jsonify({"message":"Unauthorized User"}),401
+        
+        elif kyc_done.bank_approved == True and kyc_done.kyc_status == 'verified':
+            return jsonify({"message":"Already KYC Verified "}),202
+        
+
+        result1 = app_login()
+        if result1.get('status') not in [200,202]:
+            return jsonify({"message":"Invalid Token"}),401
+        result = collecting_user_status(kyc_id)
+        if result.get('status') not in [200,202]:
+            return jsonify({"message":"Invalid Response"}),402
+            
+            
+        
+        kyc_done.kyc_status = 'verified'
+        kyc_done.bank_approved = True
+            
+        account_created = Account(account_num=result.get('account_num'),account_ifsc = result.get('account_ifsc'),balance=result.get('balance'),user_id=kyc_done.user_kyc.id,bank_dec_id=result.get('bank_user_id'))
+        
+        db.session.add(account_created)
+        db.session.commit()
+        return jsonify({"message":"Account created Successfully"}),200
+    elif request.method =='GET':
+        
+        
+        kyc_done = KYC_Model.query.filter_by(id=kyc_id).first()
+           
+        acc = Account.query.filter_by(user_id=kyc_done.user_kyc.id).first()
+        if acc:
+            try:
+                msg = Message('Account Succession Verification',
+                            sender='krishibhavikgandhi@gmail.com',
+                            recipients=[kyc_done.user_kyc.email]
+                        )
+                msg.html = f'''
+                    <!Doctype html>
+                    <html>
+                        <body style="font-family: Arial, sans-serif; max-width: 500px; margin: 40px auto; color: #333;">
+                            <h1>Thanks For Account opening! for <strong>Demo Fintech App</strong></h1>
+                                <h2>Your Account has Created Successfully!</h2>
+                                <p>Now Please visit the app and create an app password key to maintain app and your security</p>
+
+                            
+                           
+                            <h4>Go toyour profile section -> Click Change Password than update your password</h4>
+                                
+                                
+                            <h4>Thank You!</h4>
+
+                        </body>
+                    </html>
+                    '''
+                print(f"Sending to: {kyc_done.user_kyc.email}")
+                mail.send(msg)
+                print("Mail sent without exception")
+                
+                return jsonify({"message":"Account Created and Email sent successfully!"}),200
+            except Exception as e:
+                print("SMTP Error:", repr(e))
+                return jsonify({"error": "Mail sending failed", "details": str(e)}), 500
+        else:
+            return jsonify({"message":"Account not found!"}),401
+        
+            
+    else:
+        return jsonify({"Invalid Type"}),415
+
+@app.route("/user/create_password/mainpage",methods=['POST','GET'])
+@jwt_required(locations=['cookies'])
+@check_current_user
+def create_the_app_password(user,*args,**kwargs):
     
 
-    kyc_done.kyc_status = 'verified'
-    kyc_done.bank_approved = True
+    if request.method == 'POST':
+        data = request.get_json()
+
+        acc = Account.query.filter_by(user_id=user.id).first()
+        if acc and acc.app_password:
+            return jsonify({"message":"password Already created"}),202
+
+        elif acc and not acc.app_password:
+            acc.set_password(data['app_password'])
+            db.session.commit()
+            return jsonify({"message":"password created successfully!"}),200
+
+        else:
+            return jsonify({"message":"Error creating an password"}),400
+
+    elif request.method == 'GET':
+        have_acc = Account.query.filter_by(user_id=user.id).first()
+        if have_acc and have_acc.app_password:
+            return jsonify({"message":"Password already created"}),202
+
+        elif have_acc and not have_acc.app_password:
+            return jsonify({"message":"Password not created"}),401
+
+
+    else:
+        return jsonify({"message":"Invalid Type"}),415
+        
     
-    account_created = Account(account_num=result.get('account_num'),account_ifsc = result.get('account_ifsc'),balance=result.get('balance'),user_id=kyc_done.user_kyc.id,bank_dec_id=result.get('bank_user_id'))
-    account_created.set_password(temp_pass)
-    db.session.add(account_created)
-    db.session.commit()
-    return jsonify({"message":"Account has been created successfully!"}),200
+
+
+        
+        
 
 
 @app.route("/user/check_active_or_inactive_status",methods=['GET'])
@@ -761,7 +816,7 @@ def user_dashboard(user,*args,**kwargs):
     if not account_exists:
         return jsonify({"message":"You don't hold account"}),401
     today_date  = date.today()
-    todays_investments = DematHoldings.query.filter_by(invest_type='buy').filter(func.date(DematHoldings.buy_date) == today_date).order_by(DematHoldings.buy_date.desc()).all()
+    todays_investments = DematHoldings.query.filter_by(invest_type='buy',user_investments=account_exists.id).filter(func.date(DematHoldings.buy_date) == today_date).order_by(DematHoldings.buy_date.desc()).all()
     todays_transaction = Transaction.query.filter_by(sender_acc=account_exists.account_num,transaction_type='debit').filter(func.date(Transaction.timestamp) == today_date).order_by(Transaction.timestamp.desc()).all()
     
     todays_transaction_data = []
